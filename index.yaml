@@ -10,6 +10,6 @@ entries:
     name: kubevirt
     type: application
     urls:
-    - https://github.com/unmeshkor/helmcharts/kubevirt-0.2.5.tgz
+    - https://raw.githubusercontent.com/unmeshkor/helmcharts/kubevirt-0.2.5.tgz
     version: 0.2.5
 generated: "2024-07-25T06:03:10.714450367Z"
