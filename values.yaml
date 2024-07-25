@@ -1,30 +1,79 @@
-operator:
-  image: registry.suse.com/suse/sles/15.5/virt-operator
-  version: 1.1.1-150500.8.18.1
+# Default values for kubevirt.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+# -- number of replicas
+replicaCount: 2
+
+image:
+  # --  container repository
+  repository: quay.io/kubevirt/virt-operator
+  # -- image pull policy
   pullPolicy: IfNotPresent
+  # -- image tag, use this to set the version of kubevirt
+  tag: "v0.58.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Specifies whether a service account should be created
+  create: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- The name of the service account to use. If not set and create is true, a name is generated using the fullname template
+  name: "kubevirt-operator"
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext:
+  # -- sets the container to privileged
+  privileged: true
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+# -- toleration for CriticalAddonsOnly
+tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists
+
+# -- by default forces replicas to different knodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: kubevirt.io
+                operator: In
+                values:
+                  - virt-operator
+          topologyKey: kubernetes.io/hostname
+        weight: 1
+
+priorityclass:
+  # -- craete priorityclass by default
+  create: true
+  # -- default priorityclass value
+  value: 1000000000
 
 kubevirt:
-  # Holds kubevirt configurations. Same as the virt-configMap.
-  configuration: {}
-  customizeComponents: {}
-  # The ImagePullPolicy to use.
-  imagePullPolicy: IfNotPresent
-  # Selectors and tolerations that should apply to KubeVirt infrastructure components.
-  infra: {}
-  # Specifies if KubeVirt can be deleted if workloads are still present.
-  # This is mainly a precaution to avoid accidental data loss.
-  uninstallStrategy: ""
-  # WorkloadUpdateStrategy defines at the cluster level how to handle automated workload updates.
-  workloadUpdateStrategy: {}
-
-hookImage: rancher/kubectl:v1.28.7
-hookRestartPolicy: OnFailure
-hookSecurityContext:
-  seccompProfile:
-    type: RuntimeDefault
-  runAsNonRoot: true
-  runAsUser: 1000
-  allowPrivilegeEscalation: false
-  capabilities:
-    drop:
-      - ALL
+  # -- create kubebvirt object by default
+  create: true
+  configuration:
+    developerConfiguration:
+      # -- software emulation enabled by default
+      useEmulation: true
