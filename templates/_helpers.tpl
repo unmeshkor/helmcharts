@@ -48,6 +48,7 @@ Selector labels
 {{- define "kubevirt.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "kubevirt.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+kubevirt.io: virt-operator
 {{- end }}
 
 {{/*

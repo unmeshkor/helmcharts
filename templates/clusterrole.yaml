@@ -1,194 +1,11 @@
-apiVersion: scheduling.k8s.io/v1
-kind: PriorityClass
-metadata:
-  name: kubevirt-cluster-critical
-value: 1000000000
-globalDefault: false
-description: "This priority class should be used for core kubevirt components only."
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kubevirt.io:operator
+  name: {{ include "kubevirt.fullname" . }}
   labels:
     operator.kubevirt.io: ""
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
-rules:
-  - apiGroups:
-      - kubevirt.io
-    resources:
-      - kubevirts
-    verbs:
-      - get
-      - delete
-      - create
-      - update
-      - patch
-      - list
-      - watch
-      - deletecollection
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  labels:
-    kubevirt.io: ""
-  name: kubevirt-operator
-  namespace: {{ .Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  labels:
-    kubevirt.io: ""
-  name: kubevirt-operator
-  namespace: {{ .Release.Namespace }}
-rules:
-  - apiGroups:
-      - ""
-    resourceNames:
-      - kubevirt-ca
-      - kubevirt-export-ca
-      - kubevirt-virt-handler-certs
-      - kubevirt-virt-handler-server-certs
-      - kubevirt-operator-certs
-      - kubevirt-virt-api-certs
-      - kubevirt-controller-certs
-      - kubevirt-exportproxy-certs
-    resources:
-      - secrets
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - patch
-      - delete
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - patch
-      - delete
-  - apiGroups:
-      - route.openshift.io
-    resources:
-      - routes
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - patch
-      - delete
-  - apiGroups:
-      - route.openshift.io
-    resources:
-      - routes/custom-host
-    verbs:
-      - create
-  - apiGroups:
-      - coordination.k8s.io
-    resources:
-      - leases
-    verbs:
-      - get
-      - list
-      - watch
-      - delete
-      - update
-      - create
-      - patch
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - route.openshift.io
-    resources:
-      - routes
-    verbs:
-      - list
-      - get
-      - watch
-  - apiGroups:
-      - ""
-    resources:
-      - secrets
-    verbs:
-      - list
-      - get
-      - watch
-  - apiGroups:
-      - networking.k8s.io
-    resources:
-      - ingresses
-    verbs:
-      - list
-      - get
-      - watch
-  - apiGroups:
-      - coordination.k8s.io
-    resources:
-      - leases
-    verbs:
-      - get
-      - list
-      - watch
-      - delete
-      - update
-      - create
-      - patch
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - ""
-    resourceNames:
-      - kubevirt-export-ca
-    resources:
-      - configmaps
-    verbs:
-      - get
-      - list
-      - watch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  labels:
-    kubevirt.io: ""
-  name: kubevirt-operator-rolebinding
-  namespace: {{ .Release.Namespace }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: kubevirt-operator
-subjects:
-  - kind: ServiceAccount
-    name: kubevirt-operator
-    namespace: {{ .Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  labels:
-    kubevirt.io: ""
-  name: kubevirt-operator
+    {{- include "kubevirt.labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - kubevirt.io
@@ -362,6 +179,22 @@ rules:
       - watch
       - patch
   - apiGroups:
+      - flavor.kubevirt.io
+    resources:
+      - virtualmachineflavors
+      - virtualmachineclusterflavors
+      - virtualmachinepreferences
+      - virtualmachineclusterpreferences
+    verbs:
+      - get
+      - delete
+      - create
+      - update
+      - patch
+      - list
+      - watch
+      - deletecollection
+  - apiGroups:
       - ""
     resources:
       - pods
@@ -461,14 +294,6 @@ rules:
       - list
       - watch
   - apiGroups:
-      - ""
-    resources:
-      - namespaces
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
       - instancetype.kubevirt.io
     resources:
       - virtualmachineinstancetypes
@@ -495,6 +320,14 @@ rules:
       - create
       - list
       - get
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
   - apiGroups:
       - ""
     resources:
@@ -618,8 +451,6 @@ rules:
     resources:
       - virtualmachinepools
       - virtualmachinepools/finalizers
-      - virtualmachinepools/status
-      - virtualmachinepools/scale
     verbs:
       - watch
       - list
@@ -642,8 +473,6 @@ rules:
       - virtualmachineinstances/freeze
       - virtualmachineinstances/unfreeze
       - virtualmachineinstances/softreboot
-      - virtualmachineinstances/sev/setupsession
-      - virtualmachineinstances/sev/injectlaunchsecret
     verbs:
       - update
   - apiGroups:
@@ -658,6 +487,8 @@ rules:
       - network-attachment-definitions
     verbs:
       - get
+      - list
+      - watch
   - apiGroups:
       - apiextensions.k8s.io
     resources:
@@ -738,11 +569,28 @@ rules:
     verbs:
       - get
   - apiGroups:
-      - ""
+      - route.openshift.io
     resources:
-      - resourcequotas
+      - routes
     verbs:
       - list
+      - get
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - list
+      - get
+      - watch
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - list
+      - get
       - watch
   - apiGroups:
       - kubevirt.io
@@ -801,6 +649,14 @@ rules:
       - list
       - watch
   - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - export.kubevirt.io
     resources:
       - virtualmachineexports
@@ -813,6 +669,16 @@ rules:
     resources:
       - kubevirts
     verbs:
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resourceNames:
+      - kubevirt-export-ca
+    resources:
+      - configmaps
+    verbs:
+      - get
       - list
       - watch
   - apiGroups:
@@ -829,12 +695,9 @@ rules:
       - virtualmachineinstances/console
       - virtualmachineinstances/vnc
       - virtualmachineinstances/vnc/screenshot
-      - virtualmachineinstances/portforward
       - virtualmachineinstances/guestosinfo
       - virtualmachineinstances/filesystemlist
       - virtualmachineinstances/userlist
-      - virtualmachineinstances/sev/fetchcertchain
-      - virtualmachineinstances/sev/querylaunchmeasurement
     verbs:
       - get
   - apiGroups:
@@ -847,15 +710,13 @@ rules:
       - virtualmachineinstances/freeze
       - virtualmachineinstances/unfreeze
       - virtualmachineinstances/softreboot
-      - virtualmachineinstances/sev/setupsession
-      - virtualmachineinstances/sev/injectlaunchsecret
+      - virtualmachineinstances/portforward
     verbs:
       - update
   - apiGroups:
       - subresources.kubevirt.io
     resources:
       - virtualmachines/expand-spec
-      - virtualmachines/portforward
     verbs:
       - get
   - apiGroups:
@@ -899,32 +760,6 @@ rules:
       - virtualmachinesnapshots
       - virtualmachinesnapshotcontents
       - virtualmachinerestores
-    verbs:
-      - get
-      - delete
-      - create
-      - update
-      - patch
-      - list
-      - watch
-      - deletecollection
-  - apiGroups:
-      - export.kubevirt.io
-    resources:
-      - virtualmachineexports
-    verbs:
-      - get
-      - delete
-      - create
-      - update
-      - patch
-      - list
-      - watch
-      - deletecollection
-  - apiGroups:
-      - clone.kubevirt.io
-    resources:
-      - virtualmachineclones
     verbs:
       - get
       - delete
@@ -977,12 +812,9 @@ rules:
       - virtualmachineinstances/console
       - virtualmachineinstances/vnc
       - virtualmachineinstances/vnc/screenshot
-      - virtualmachineinstances/portforward
       - virtualmachineinstances/guestosinfo
       - virtualmachineinstances/filesystemlist
       - virtualmachineinstances/userlist
-      - virtualmachineinstances/sev/fetchcertchain
-      - virtualmachineinstances/sev/querylaunchmeasurement
     verbs:
       - get
   - apiGroups:
@@ -995,15 +827,13 @@ rules:
       - virtualmachineinstances/freeze
       - virtualmachineinstances/unfreeze
       - virtualmachineinstances/softreboot
-      - virtualmachineinstances/sev/setupsession
-      - virtualmachineinstances/sev/injectlaunchsecret
+      - virtualmachineinstances/portforward
     verbs:
       - update
   - apiGroups:
       - subresources.kubevirt.io
     resources:
       - virtualmachines/expand-spec
-      - virtualmachines/portforward
     verbs:
       - get
   - apiGroups:
@@ -1055,30 +885,6 @@ rules:
       - list
       - watch
   - apiGroups:
-      - export.kubevirt.io
-    resources:
-      - virtualmachineexports
-    verbs:
-      - get
-      - delete
-      - create
-      - update
-      - patch
-      - list
-      - watch
-  - apiGroups:
-      - clone.kubevirt.io
-    resources:
-      - virtualmachineclones
-    verbs:
-      - get
-      - delete
-      - create
-      - update
-      - patch
-      - list
-      - watch
-  - apiGroups:
       - instancetype.kubevirt.io
     resources:
       - virtualmachineinstancetypes
@@ -1121,21 +927,12 @@ rules:
       - list
       - watch
   - apiGroups:
-      - kubevirt.io
-    resources:
-      - kubevirts
-    verbs:
-      - get
-      - list
-  - apiGroups:
       - subresources.kubevirt.io
     resources:
       - virtualmachines/expand-spec
       - virtualmachineinstances/guestosinfo
       - virtualmachineinstances/filesystemlist
       - virtualmachineinstances/userlist
-      - virtualmachineinstances/sev/fetchcertchain
-      - virtualmachineinstances/sev/querylaunchmeasurement
     verbs:
       - get
   - apiGroups:
@@ -1167,22 +964,6 @@ rules:
       - list
       - watch
   - apiGroups:
-      - export.kubevirt.io
-    resources:
-      - virtualmachineexports
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - clone.kubevirt.io
-    resources:
-      - virtualmachineclones
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
       - instancetype.kubevirt.io
     resources:
       - virtualmachineinstancetypes
@@ -1210,15 +991,6 @@ rules:
       - list
       - watch
   - apiGroups:
-      - instancetype.kubevirt.io
-    resources:
-      - virtualmachineclusterinstancetypes
-      - virtualmachineclusterpreferences
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
       - authentication.k8s.io
     resources:
       - tokenreviews
@@ -1230,123 +1002,3 @@ rules:
       - subjectaccessreviews
     verbs:
       - create
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  labels:
-    kubevirt.io: ""
-  name: kubevirt-operator
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kubevirt-operator
-subjects:
-  - kind: ServiceAccount
-    name: kubevirt-operator
-    namespace: {{ .Release.Namespace }}
-
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
-    kubevirt.io: virt-operator
-  name: virt-operator
-  namespace: {{ .Release.Namespace }}
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      kubevirt.io: virt-operator
-  strategy:
-    type: RollingUpdate
-  template:
-    metadata:
-      labels:
-        kubevirt.io: virt-operator
-        name: virt-operator
-        prometheus.kubevirt.io: "true"
-      name: virt-operator
-    spec:
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - podAffinityTerm:
-                labelSelector:
-                  matchExpressions:
-                    - key: kubevirt.io
-                      operator: In
-                      values:
-                        - virt-operator
-                topologyKey: kubernetes.io/hostname
-              weight: 1
-      containers:
-        - args:
-            - --port
-            - "8443"
-            - -v
-            - "2"
-          command:
-            - virt-operator
-          env:
-            - name: VIRT_OPERATOR_IMAGE
-              value: {{ .Values.operator.image }}:{{ .Values.operator.version }}
-            - name: WATCH_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.annotations['olm.targetNamespaces']
-            - name: KUBEVIRT_VERSION
-              value: {{ .Values.operator.version }}
-          image: {{ .Values.operator.image }}:{{ .Values.operator.version }}
-          imagePullPolicy: {{ .Values.operator.pullPolicy }}
-          name: virt-operator
-          ports:
-            - containerPort: 8443
-              name: metrics
-              protocol: TCP
-            - containerPort: 8444
-              name: webhooks
-              protocol: TCP
-          readinessProbe:
-            httpGet:
-              path: /metrics
-              port: 8443
-              scheme: HTTPS
-            initialDelaySeconds: 5
-            timeoutSeconds: 10
-          resources:
-            requests:
-              cpu: 10m
-              memory: 450Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
-          volumeMounts:
-            - mountPath: /etc/virt-operator/certificates
-              name: kubevirt-operator-certs
-              readOnly: true
-            - mountPath: /profile-data
-              name: profile-data
-      nodeSelector:
-        kubernetes.io/os: linux
-      priorityClassName: kubevirt-cluster-critical
-      securityContext:
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
-      serviceAccountName: kubevirt-operator
-      tolerations:
-        - key: CriticalAddonsOnly
-          operator: Exists
-      volumes:
-        - name: kubevirt-operator-certs
-          secret:
-            optional: true
-            secretName: kubevirt-operator-certs
-        - emptyDir: {}
-          name: profile-data
